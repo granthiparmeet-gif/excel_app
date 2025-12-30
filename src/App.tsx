@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 
 const columnOrder = [
   'Keyword',
@@ -23,14 +23,44 @@ const createEmptyRow = (): RowData =>
   }, {} as RowData)
 
 const INITIAL_ROW_COUNT = 8
+const STORAGE_KEY = 'excel_worksheet_data'
 
 const normalizeValue = (value: string) => value.trim().toLowerCase()
 
 function App() {
-  const [rows, setRows] = useState<RowData[]>(() =>
-    Array.from({ length: INITIAL_ROW_COUNT }, () => createEmptyRow()),
-  )
+  const [rows, setRows] = useState<RowData[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) {
+        return Array.from({ length: INITIAL_ROW_COUNT }, () => createEmptyRow())
+      }
+      const parsed = JSON.parse(raw) as Record<string, string>[]
+
+      if (!Array.isArray(parsed) || !parsed.length) {
+        return Array.from({ length: INITIAL_ROW_COUNT }, () => createEmptyRow())
+      }
+
+      return parsed.map((entry) => {
+        const row: RowData = createEmptyRow()
+        columnOrder.forEach((column) => {
+          row[column] = String(entry[column] ?? '').trim()
+        })
+        return row
+      })
+    } catch (error) {
+      console.warn('Failed to load saved worksheet data, falling back to empty rows.', error)
+      return Array.from({ length: INITIAL_ROW_COUNT }, () => createEmptyRow())
+    }
+  })
   const [editingCell, setEditingCell] = useState<{ row: number; colIdx: number } | null>(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+    } catch (error) {
+      console.warn('Failed to persist worksheet data', error)
+    }
+  }, [rows])
 
   // Maintain a quick lookup of normalized cell values so duplicate highlights stay fast.
   const duplicateLookup = useMemo(() => {
@@ -127,7 +157,7 @@ function App() {
   const cellContent = (value: string) => (value ? value : '\u00a0')
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4">
+    <div className="bg-slate-50 px-4">
       <div className="mx-auto w-full max-w-6xl space-y-6 rounded-xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
