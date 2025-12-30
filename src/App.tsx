@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 
 const columnOrder = [
   'Keyword',
@@ -115,6 +115,36 @@ function App() {
     })
   }, [])
 
+  const applyPasteData = useCallback(
+    (startRow: number, startCol: number, grid: string[][]) => {
+      setRows((prev) => {
+        const next = [...prev]
+
+        grid.forEach((gridRow, rowOffset) => {
+          const targetRow = startRow + rowOffset
+          while (targetRow >= next.length) {
+            next.push(createEmptyRow())
+          }
+
+          const updatedRow = { ...next[targetRow] }
+
+          gridRow.forEach((value, colOffset) => {
+            const targetCol = startCol + colOffset
+            if (targetCol < 0 || targetCol >= columnOrder.length) {
+              return
+            }
+            updatedRow[columnOrder[targetCol]] = value
+          })
+
+          next[targetRow] = updatedRow
+        })
+
+        return next
+      })
+    },
+    [],
+  )
+
   // Keyboard navigation mirrors Excel: Enter moves down, Tab moves right (with wrap/Shift support).
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>, rowIdx: number, colIdx: number) => {
@@ -142,6 +172,22 @@ function App() {
       }
     },
     [focusCell],
+  )
+
+  const handlePaste = useCallback(
+    (event: ClipboardEvent<HTMLInputElement>, rowIdx: number, colIdx: number) => {
+      event.preventDefault()
+      const text = event.clipboardData.getData('text/plain')
+      if (!text) {
+        return
+      }
+
+      const rows = text.split(/\r\n|\n|\r/)
+      const parsed = rows.map((row) => row.split('\t'))
+
+      applyPasteData(rowIdx, colIdx, parsed)
+    },
+    [applyPasteData],
   )
 
   const isDuplicateCell = (rowIdx: number, column: ColumnKey) => {
@@ -231,6 +277,7 @@ function App() {
                             }
                           }}
                           onKeyDown={(event) => handleKeyDown(event, rowIdx, colIdx)}
+                          onPaste={(event) => handlePaste(event, rowIdx, colIdx)}
                           autoFocus
                           className={`h-10 w-full border-none bg-transparent px-3 text-left outline-none ${focusRing}`}
                         />
