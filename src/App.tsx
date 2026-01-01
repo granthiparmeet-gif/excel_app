@@ -206,20 +206,20 @@ function App() {
     <div className="bg-slate-50">
       <div className="mx-auto w-full max-w-full space-y-6 rounded-xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
 
-        <div className="overflow-auto">
+        <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
           <div
             className="grid min-w-full rounded-sm bg-white text-sm text-slate-800 shadow-[0_1px_4px_rgba(15,23,42,0.08)]"
             style={{
               gridTemplateColumns: `48px repeat(${columnOrder.length}, minmax(130px,1fr))`,
             }}
           >
-            <div className="border-b border-r border-slate-200 bg-slate-100 px-2 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div className="sticky top-0 z-10 border-b border-r border-slate-200 bg-slate-100 px-2 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
               #
             </div>
             {columnOrder.map((column) => (
               <div
                 key={column}
-                className="flex items-center border-b border-r border-slate-200 bg-slate-100 px-3 py-3 text-xs font-semibold uppercase tracking-widest text-slate-600"
+                className="sticky top-0 z-10 flex items-center border-b border-r border-slate-200 bg-slate-100 px-3 py-3 text-xs font-semibold uppercase tracking-widest text-slate-600"
               >
                 {column}
               </div>
@@ -282,11 +282,7 @@ function App() {
             ))}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
-          <p className="text-xs text-slate-500">
-            Values that match (case-insensitive, trimmed) earlier entries are softly highlighted, just
-            like Excel duplication hints.
-          </p>
+        <div className="flex justify-end border-t border-slate-100 pt-4">
           <button
             type="button"
             onClick={() => addRows(100)}
