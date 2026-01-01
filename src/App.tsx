@@ -203,10 +203,10 @@ function App() {
   const cellContent = (value: string) => (value ? value : '\u00a0')
 
   return (
-    <div className="bg-slate-50">
-      <div className="mx-auto w-full max-w-full space-y-6 rounded-xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
+    <div className="bg-slate-50 min-h-screen">
+      <div className="mx-auto flex h-screen w-full max-w-full flex-col rounded-xl bg-white px-6 py-0 shadow-xl ring-1 ring-slate-200">
 
-        <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+        <div className="flex-1 overflow-auto">
           <div
             className="grid min-w-full rounded-sm bg-white text-sm text-slate-800 shadow-[0_1px_4px_rgba(15,23,42,0.08)]"
             style={{
