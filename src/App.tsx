@@ -103,8 +103,8 @@ function App() {
     [ensureRowExists],
   )
 
-  const addRow = useCallback(() => {
-    setRows((prev) => [...prev, createEmptyRow()])
+  const addRows = useCallback((count: number) => {
+    setRows((prev) => [...prev, ...Array.from({ length: count }, () => createEmptyRow())])
   }, [])
 
   const updateCellValue = useCallback((rowIdx: number, column: ColumnKey, value: string) => {
@@ -203,8 +203,8 @@ function App() {
   const cellContent = (value: string) => (value ? value : '\u00a0')
 
   return (
-    <div className="bg-slate-50 px-4">
-      <div className="mx-auto w-full max-w-6xl space-y-6 rounded-xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
+    <div className="bg-slate-50">
+      <div className="mx-auto w-full max-w-full space-y-6 rounded-xl bg-white p-6 shadow-xl ring-1 ring-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Excel-style Worksheet</h1>
@@ -212,13 +212,13 @@ function App() {
               Inline edits, Tab/Enter navigation, and real-time duplicate highlighting.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={addRow}
-            className="rounded border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-200"
-          >
-            + Add Row
-          </button>
+            <button
+              type="button"
+              onClick={() => addRows(100)}
+              className="rounded border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-200"
+            >
+              +100 Add Row
+            </button>
         </div>
 
         <div className="overflow-auto">
