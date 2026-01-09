@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type KeyboardEvent,
+} from 'react'
 
 const columnOrder = [
   'Keyword',
@@ -14,6 +23,7 @@ const columnOrder = [
 
 type ColumnKey = (typeof columnOrder)[number]
 type RowData = Record<ColumnKey, string>
+type MatchEntry = { rowIdx: number; colIdx: number; column: ColumnKey }
 
 // Build an empty row so every addition uses the same shape and stays easy to extend later.
 const createEmptyRow = (): RowData =>
@@ -54,6 +64,9 @@ function App() {
   })
   const [editingCell, setEditingCell] = useState<{ row: number; colIdx: number } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeMatchIdx, setActiveMatchIdx] = useState<number | null>(null)
+  const [activeSearchTerm, setActiveSearchTerm] = useState('')
+  const cellRefs = useRef<Map<string, HTMLDivElement | null>>(new Map())
 
   useEffect(() => {
     try {
@@ -203,8 +216,57 @@ function App() {
   // Keep the grid stable by rendering a non-breaking space in empty cells.
   const normalizedSearch = normalizeValue(searchQuery)
   const hasSearchQuery = Boolean(normalizedSearch)
+  const matchEntries = useMemo<MatchEntry[]>(() => {
+    if (!hasSearchQuery) return []
+    const entries: MatchEntry[] = []
+    rows.forEach((row, rowIdx) => {
+      columnOrder.forEach((column, colIdx) => {
+        if (normalizeValue(row[column]).includes(normalizedSearch)) {
+          entries.push({ rowIdx, colIdx, column })
+        }
+      })
+    })
+    return entries
+  }, [hasSearchQuery, normalizedSearch, rows])
 
   const cellContent = (value: string) => (value ? value : '\u00a0')
+
+  const handleSearchChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value)
+    setActiveMatchIdx(null)
+    setActiveSearchTerm('')
+  }, [])
+
+  const handleSearchKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') {
+        return
+      }
+      event.preventDefault()
+      if (!matchEntries.length) {
+        setActiveMatchIdx(null)
+        setActiveSearchTerm('')
+        return
+      }
+
+      const nextIndex =
+        activeMatchIdx === null ? 0 : (activeMatchIdx + 1) % matchEntries.length
+      setActiveMatchIdx(nextIndex)
+      setActiveSearchTerm(normalizedSearch)
+
+      const entry = matchEntries[nextIndex]
+      const cellKey = `${entry.rowIdx}-${entry.column}`
+      const targetCell = cellRefs.current.get(cellKey)
+      if (targetCell) {
+        targetCell.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center',
+        })
+      }
+    },
+    [activeMatchIdx, matchEntries, normalizedSearch],
+  )
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -241,19 +303,38 @@ function App() {
                   const duplicate = isDuplicateCell(rowIdx, column)
                   const matchesSearch =
                     hasSearchQuery && normalizeValue(row[column]).includes(normalizedSearch)
-                  const cellBackground = duplicate
-                    ? 'bg-yellow-100'
-                    : matchesSearch
-                      ? 'bg-sky-50'
-                      : 'bg-white'
+                  const activeEntry =
+                    activeMatchIdx !== null ? matchEntries[activeMatchIdx] : undefined
+                  const matchesActiveSearchTerm =
+                    Boolean(activeSearchTerm) && activeSearchTerm === normalizedSearch
+                  const isActiveMatch =
+                    matchesActiveSearchTerm &&
+                    activeEntry?.rowIdx === rowIdx &&
+                    activeEntry?.colIdx === colIdx
+                  const cellBackground = isActiveMatch
+                    ? 'bg-rose-100'
+                    : duplicate
+                      ? 'bg-yellow-100'
+                      : matchesSearch
+                        ? 'bg-sky-50'
+                        : 'bg-white'
+                  const textColor = isActiveMatch ? 'text-rose-700' : 'text-slate-800'
                   const focusRing = isEditing
                     ? 'ring-2 ring-inset ring-blue-400/70'
                     : 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500'
+                  const cellKey = `${rowIdx}-${column}`
 
                   return (
                     <div
                       key={`${rowIdx}-${column}`}
-                      className={`border-b border-r border-slate-200 ${cellBackground}`}
+                      className={`border-b border-r border-slate-200 ${cellBackground} ${textColor}`}
+                      ref={(el) => {
+                        if (el) {
+                          cellRefs.current.set(cellKey, el)
+                        } else {
+                          cellRefs.current.delete(cellKey)
+                        }
+                      }}
                       onClick={() => focusCell(rowIdx, colIdx)}
                     >
                       {isEditing ? (
@@ -297,7 +378,8 @@ function App() {
               id="worksheet-search"
               type="search"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search worksheet"
               className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
             />
