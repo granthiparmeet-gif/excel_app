@@ -53,6 +53,7 @@ function App() {
     }
   })
   const [editingCell, setEditingCell] = useState<{ row: number; colIdx: number } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     try {
@@ -200,6 +201,9 @@ function App() {
   }
 
   // Keep the grid stable by rendering a non-breaking space in empty cells.
+  const normalizedSearch = normalizeValue(searchQuery)
+  const hasSearchQuery = Boolean(normalizedSearch)
+
   const cellContent = (value: string) => (value ? value : '\u00a0')
 
   return (
@@ -226,30 +230,32 @@ function App() {
             ))}
 
             {rows.map((row, rowIdx) => (
-                  <div
-                    key={`row-${rowIdx}`}
-                    className="contents"
-                  >
-                    <div className="border-b border-r border-slate-200 bg-slate-50 px-2 py-3 text-sm font-medium text-slate-500">
-                      {rowIdx + 1}
-                    </div>
+              <div key={`row-${rowIdx}`} className="contents">
+                <div className="border-b border-r border-slate-200 bg-slate-50 px-2 py-3 text-sm font-medium text-slate-500">
+                  {rowIdx + 1}
+                </div>
 
-                    {columnOrder.map((column, colIdx) => {
+                {columnOrder.map((column, colIdx) => {
                   const isEditing =
                     editingCell?.row === rowIdx && editingCell.colIdx === colIdx
                   const duplicate = isDuplicateCell(rowIdx, column)
+                  const matchesSearch =
+                    hasSearchQuery && normalizeValue(row[column]).includes(normalizedSearch)
+                  const cellBackground = duplicate
+                    ? 'bg-yellow-100'
+                    : matchesSearch
+                      ? 'bg-sky-50'
+                      : 'bg-white'
                   const focusRing = isEditing
                     ? 'ring-2 ring-inset ring-blue-400/70'
                     : 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500'
 
                   return (
-                      <div
-                        key={`${rowIdx}-${column}`}
-                        className={`border-b border-r border-slate-200 ${
-                          duplicate ? 'bg-yellow-100' : 'bg-white'
-                        }`}
-                        onClick={() => focusCell(rowIdx, colIdx)}
-                      >
+                    <div
+                      key={`${rowIdx}-${column}`}
+                      className={`border-b border-r border-slate-200 ${cellBackground}`}
+                      onClick={() => focusCell(rowIdx, colIdx)}
+                    >
                       {isEditing ? (
                         <input
                           data-cell-input
@@ -282,7 +288,20 @@ function App() {
             ))}
           </div>
         </div>
-        <div className="flex justify-end border-t border-slate-100 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="flex flex-1 min-w-[220px] items-center gap-2">
+            <label htmlFor="worksheet-search" className="sr-only">
+              Search worksheet
+            </label>
+            <input
+              id="worksheet-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search worksheet"
+              className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
+            />
+          </div>
           <button
             type="button"
             onClick={() => addRows(100)}
