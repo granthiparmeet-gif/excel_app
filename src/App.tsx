@@ -16,6 +16,8 @@ const columnOrder = [
   'Middle',
   'City',
   'FirstName',
+  '1 letter',
+  '2 letter',
   '3 letter',
   '4 letter',
   'Extensions',
@@ -268,6 +270,15 @@ function App() {
     [activeMatchIdx, matchEntries, normalizedSearch],
   )
 
+  const handleReload = useCallback(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows))
+    } catch (error) {
+      console.warn('Failed to persist worksheet data before reload', error)
+    }
+    window.location.reload()
+  }, [rows])
+
   return (
     <div className="bg-slate-50 min-h-screen">
       <div className="mx-auto flex h-screen w-full max-w-full flex-col rounded-xl bg-white px-6 py-0 shadow-xl ring-1 ring-slate-200">
@@ -383,6 +394,13 @@ function App() {
               placeholder="Search worksheet"
               className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={handleReload}
+              className="rounded border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              Reload
+            </button>
           </div>
           <button
             type="button"
