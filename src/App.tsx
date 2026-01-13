@@ -16,8 +16,6 @@ const columnOrder = [
   'Middle',
   'City',
   'FirstName',
-  '3 letter',
-  '4 letter',
   'Extensions',
 ] as const
 
@@ -26,6 +24,13 @@ type RowData = Record<ColumnKey, string>
 type MatchEntry = { rowIdx: number; colIdx: number; column: ColumnKey }
 
 // Build an empty row so every addition uses the same shape and stays easy to extend later.
+const escapeCSVValue = (value: string) => {
+  if (value.includes('"') || value.includes(',') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`
+  }
+  return value
+}
+
 const createEmptyRow = (): RowData =>
   columnOrder.reduce((record, column) => {
     record[column] = ''
@@ -74,6 +79,25 @@ function App() {
     } catch (error) {
       console.warn('Failed to persist worksheet data', error)
     }
+  }, [rows])
+
+  const handleExportCSV = useCallback(() => {
+    const header = columnOrder.join(',')
+    const dataRows = rows.map((row) =>
+      columnOrder
+        .map((column) => escapeCSVValue(row[column]))
+        .join(','),
+    )
+    const csvContent = [header, ...dataRows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'worksheet.csv'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }, [rows])
 
   // Maintain a quick lookup of normalized cell values so duplicate highlights stay fast.
@@ -383,6 +407,13 @@ function App() {
               placeholder="Search worksheet"
               className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="rounded border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
           </div>
           <button
             type="button"
